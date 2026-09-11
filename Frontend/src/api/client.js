@@ -7,11 +7,16 @@ async function request(path, options = {}) {
       headers: { "Content-Type": "application/json" },
       ...options,
     });
-  } catch (err) {
-    throw new Error(
-      `Could not reach the server at ${BASE_URL}. Is the backend running?`
-    );
-  }
+  }  catch (err) {
+  console.error("FETCH FAILED");
+  console.error("URL:", `${BASE_URL}${path}`);
+  console.error("ERROR:", err);
+  console.error("MESSAGE:", err.message);
+
+  throw new Error(
+    `Request failed: ${err.message}`
+  );
+}
 
   let data = null;
   try {
