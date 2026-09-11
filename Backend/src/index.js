@@ -24,12 +24,16 @@ app.use(
   })
 );
 app.use(express.json());
+app.use(cors({
+  origin: "https://project-management-system-alpha-five.vercel.app/",
+  credentials: true,
+}));
 
 app.use("/user", userRoutes);
 app.use("/projects", projectRoutes);
 app.use("/tasks", taskRoutes);
 initialiseDatabse();
 const PORT = process.env.PORT || 8000;
-app.listen(PORT, async () => {
-  console.log(`server started at port ${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server started at port ${PORT}`);
 });
