@@ -1,39 +1,16 @@
-import "dotenv/config";
-import express from "express";
-import cors from "cors";
-import { initialiseDatabse } from "./config/index.js";
-import userRoutes from "./routes/user.route.js";
-import projectRoutes from "./routes/project.route.js";
-import taskRoutes from "./routes/task.route.js";
-const app = express();
-
-const allowedOrigins = (process.env.CORS_ORIGIN)
-  .split(",")
-  .map((origin) => origin.trim());
-
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // allow requests with no origin (e.g. curl, Postman, server-to-server)
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error(`Origin ${origin} is not allowed by CORS`));
-      }
-    },
-  })
-);
-app.use(express.json());
-app.use(cors({
-  origin: "https://project-management-system-alpha-five.vercel.app/",
-  credentials: true,
-}));
-
-app.use("/user", userRoutes);
-app.use("/projects", projectRoutes);
-app.use("/tasks", taskRoutes);
-initialiseDatabse();
-const PORT = process.env.PORT || 8000;
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server started at port ${PORT}`);
-});
+import express from "express";import cors from "cors";import dotenv from "dotenv";import mongoose from "mongoose";
+dotenv.config();const app=express();app.use(cors({origin:process.env.CLIENT_URL||"http://localhost:5173"}));app.use(express.json());
+const projectSchema=new mongoose.Schema({name:{type:String,required:true},description:String,status:{type:String,default:"Planning"},progress:{type:Number,default:0},due:String,members:{type:Number,default:1},tasks:{type:Number,default:0}},{timestamps:true});
+const taskSchema=new mongoose.Schema({title:{type:String,required:true},description:String,project:String,assignee:String,priority:{type:String,default:"Medium"},status:{type:String,default:"Todo"},due:String},{timestamps:true});
+const Project=mongoose.model("Project",projectSchema),Task=mongoose.model("Task",taskSchema);
+app.get("/api/health",(req,res)=>res.json({success:true,status:"ok",database:mongoose.connection.readyState===1?"connected":"disconnected"}));
+app.get("/api/projects",async(req,res)=>res.json(await Project.find().sort({createdAt:-1})));
+app.post("/api/projects",async(req,res)=>{try{res.status(201).json(await Project.create(req.body))}catch(e){res.status(400).json({message:e.message})}});
+app.put("/api/projects/:id",async(req,res)=>{try{res.json(await Project.findByIdAndUpdate(req.params.id,req.body,{new:true,runValidators:true}))}catch(e){res.status(400).json({message:e.message})}});
+app.delete("/api/projects/:id",async(req,res)=>{await Project.findByIdAndDelete(req.params.id);res.json({success:true})});
+app.get("/api/tasks",async(req,res)=>res.json(await Task.find().sort({createdAt:-1})));
+app.post("/api/tasks",async(req,res)=>{try{res.status(201).json(await Task.create(req.body))}catch(e){res.status(400).json({message:e.message})}});
+app.put("/api/tasks/:id",async(req,res)=>{try{res.json(await Task.findByIdAndUpdate(req.params.id,req.body,{new:true,runValidators:true}))}catch(e){res.status(400).json({message:e.message})}});
+app.delete("/api/tasks/:id",async(req,res)=>{await Task.findByIdAndDelete(req.params.id);res.json({success:true})});
+app.get("/api/users",async(req,res)=>res.json([]));
+const PORT=process.env.PORT||8000;mongoose.connect(process.env.MONGO_URI).then(()=>app.listen(PORT,"0.0.0.0",()=>console.log(`Server running on ${PORT}`))).catch(e=>{console.error("MongoDB connection failed:",e.message);process.exit(1)});
