@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { initialiseDatabse } from "./config/index.js";
@@ -5,7 +6,23 @@ import userRoutes from "./routes/user.route.js";
 import projectRoutes from "./routes/project.route.js";
 import taskRoutes from "./routes/task.route.js";
 const app = express();
-app.use(cors());
+
+const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173")
+  .split(",")
+  .map((origin) => origin.trim());
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // allow requests with no origin (e.g. curl, Postman, server-to-server)
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`Origin ${origin} is not allowed by CORS`));
+      }
+    },
+  })
+);
 app.use(express.json());
 
 app.use("/user", userRoutes);
@@ -14,5 +31,5 @@ app.use("/tasks", taskRoutes);
 initialiseDatabse();
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, async () => {
-  console.log("server started at port 8000");
+  console.log(`server started at port ${PORT}`);
 });
